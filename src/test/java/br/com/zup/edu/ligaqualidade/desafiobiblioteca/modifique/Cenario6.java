@@ -123,8 +123,7 @@ public class Cenario6 {
 		List<LocalDate> datasPrevistasDevolucaoRetornadas = resultados.stream()
 				.map(r -> r.dataPrevistaDevolucao).collect(Collectors.toList());
 		LocalDate previsaoEntrega = hoje.plusDays(10);
-		List<LocalDate> datasPrevistasEsperadas = List.of(previsaoEntrega,
-				previsaoEntrega, previsaoEntrega);
+		List<LocalDate> datasPrevistasEsperadas = List.of(previsaoEntrega);
 		Assertions.assertEquals(datasPrevistasEsperadas,
 				datasPrevistasDevolucaoRetornadas);
 	}
