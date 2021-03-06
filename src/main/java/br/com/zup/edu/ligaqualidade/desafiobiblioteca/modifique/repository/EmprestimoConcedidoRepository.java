@@ -1,7 +1,6 @@
 package br.com.zup.edu.ligaqualidade.desafiobiblioteca.modifique.repository;
 
 import br.com.zup.edu.ligaqualidade.desafiobiblioteca.EmprestimoConcedido;
-import br.com.zup.edu.ligaqualidade.desafiobiblioteca.pronto.DadosExemplar;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -20,7 +19,7 @@ public class EmprestimoConcedidoRepository {
     }
 
     public void devolver(Integer idEmprestimo) {
-        emprestimosConcedidos.stream().filter(it -> it.idEmprestimo == idEmprestimo).findFirst().get().registraDevolucao();
+        emprestimosConcedidos.stream().filter(it -> it.idEmprestimo == idEmprestimo).findFirst().ifPresent(it -> it.registraDevolucao());
     }
 
     public Set<EmprestimoConcedido> get() {
@@ -30,7 +29,13 @@ public class EmprestimoConcedidoRepository {
     public Set<Integer> getExemplaresComEmprestivoAtivos(Set<Integer> idsExemplares) {
 
         return emprestimosConcedidos.stream().filter(it ->
-            !it.getMomentoDevolucao().isPresent() && idsExemplares.contains(it.idExemplar)
+                !it.getMomentoDevolucao().isPresent() && idsExemplares.contains(it.idExemplar)
         ).map(it -> it.idExemplar).collect(Collectors.toSet());
+    }
+
+    public Set<EmprestimoConcedido> getEmprestimosEmAberto(int idUsuario) {
+        return emprestimosConcedidos.stream().filter(it ->
+                !it.getMomentoDevolucao().isPresent() && it.idUsuario == idUsuario
+        ).collect(Collectors.toSet());
     }
 }

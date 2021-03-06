@@ -15,6 +15,7 @@ import java.util.Set;
 
 public class RegistrarEmprestimoService {
 
+    public static final int TEMPO_EMPRESTIMO_MAX = 60;
     UsuarioRepository usuarioRepository;
     EmprestimoConcedidoRepository emprestimoConcedidoRepository;
     ExemplarDisponivelService exemplarDisponivelService;
@@ -27,26 +28,61 @@ public class RegistrarEmprestimoService {
         this.exemplarDisponivelService = new ExemplarDisponivelService(exemplarRepository, emprestimoConcedidoRepository);
     }
 
-    public void registrar(Set<DadosEmprestimo> emprestimos) {
+    public void registrar(Set<DadosEmprestimo> emprestimos, LocalDate dataParaSerConsideradaNaExpiracao) {
 
         for (DadosEmprestimo emprestimo : emprestimos) {
 
-            if (emprestimo.tempo > 60) {
+            if (isTempoEmprestimoInvalid(emprestimo)) {
                 continue;
             }
 
             DadosUsuario dadosUsuario = usuarioRepository.get(emprestimo.idUsuario);
-            if (TipoUsuario.PADRAO.equals(dadosUsuario.padrao) && TipoExemplar.RESTRITO.equals(emprestimo.tipoExemplar)) {
+            if (isUsuarioPadrao(dadosUsuario) && isExemplarRestrito(emprestimo)) {
                 continue;
             }
 
-            Integer idExemplar = exemplarDisponivelService.getId(emprestimo.idLivro, emprestimo.tipoExemplar);
+            EmprestimoConcedido emprestimoConcedido = buildExemplarConcedido(emprestimo);
 
-            EmprestimoConcedido emprestimoConcedido = new EmprestimoConcedido(emprestimo.idPedido, emprestimo.idUsuario,
-                    idExemplar,
-                    LocalDate.now().plusDays(emprestimo.tempo));
+            if(hasEmprestimoVencido(dadosUsuario.idUsuario, dataParaSerConsideradaNaExpiracao)){
+                continue;
+            }
 
             emprestimoConcedidoRepository.regitrar(emprestimoConcedido);
         }
+    }
+
+    private EmprestimoConcedido buildExemplarConcedido(DadosEmprestimo emprestimo) {
+        Integer idExemplar = exemplarDisponivelService.getId(emprestimo.idLivro, emprestimo.tipoExemplar);
+
+        EmprestimoConcedido emprestimoConcedido = new EmprestimoConcedido(emprestimo.idPedido, emprestimo.idUsuario,
+                idExemplar,
+                LocalDate.now().plusDays(emprestimo.tempo));
+        return emprestimoConcedido;
+    }
+
+    private boolean hasEmprestimoVencido(int idUsuario, LocalDate dataParaSerConsideradaNaExpiracao){
+        var emprestimosEmAberto = emprestimoConcedidoRepository.getEmprestimosEmAberto(idUsuario);
+        if(!emprestimosEmAberto.isEmpty() &&
+                isDataPrevistaDevolucaoVencida(dataParaSerConsideradaNaExpiracao, emprestimosEmAberto)){
+            return true;
+        }
+        return false;
+    }
+
+    private boolean isDataPrevistaDevolucaoVencida(LocalDate dataParaSerConsideradaNaExpiracao, Set<EmprestimoConcedido> emprestimosEmAberto) {
+        return emprestimosEmAberto.stream()
+                .anyMatch(it -> it.dataPrevistaDevolucao.isBefore(dataParaSerConsideradaNaExpiracao));
+    }
+
+    private boolean isExemplarRestrito(DadosEmprestimo emprestimo) {
+        return TipoExemplar.RESTRITO.equals(emprestimo.tipoExemplar);
+    }
+
+    private boolean isUsuarioPadrao(DadosUsuario dadosUsuario) {
+        return TipoUsuario.PADRAO.equals(dadosUsuario.padrao);
+    }
+
+    private boolean isTempoEmprestimoInvalid(DadosEmprestimo emprestimo) {
+        return emprestimo.tempo > TEMPO_EMPRESTIMO_MAX;
     }
 }
