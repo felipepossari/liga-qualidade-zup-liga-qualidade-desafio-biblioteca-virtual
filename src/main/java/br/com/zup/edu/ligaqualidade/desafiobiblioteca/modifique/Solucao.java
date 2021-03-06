@@ -47,14 +47,10 @@ public class Solucao {
         EmprestimoConcedidoRepository emprestimoConcedidoRepository = new EmprestimoConcedidoRepository();
 
         RegistrarEmprestimoService registrarEmprestimoService = new RegistrarEmprestimoService(usuarioRepository, exemplarRepository, emprestimoConcedidoRepository);
-        if (!emprestimos.isEmpty()) {
-            registrarEmprestimoService.registrar(emprestimos);
-        }
-
         DevolverEmprestimoService devolverEmprestimoService = new DevolverEmprestimoService(emprestimoConcedidoRepository);
-        if (!devolucoes.isEmpty()) {
-            devolverEmprestimoService.devolver(devolucoes);
-        }
+
+        registrarEmprestimoService.registrar(emprestimos, dataParaSerConsideradaNaExpiracao);
+        devolverEmprestimoService.devolver(devolucoes);
 
         return emprestimoConcedidoRepository.get();
     }
